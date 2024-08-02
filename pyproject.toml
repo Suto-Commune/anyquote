@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "twi_quote"
+version = "0.1.0"
+description = ""
+authors = ["hsn <hsn1919810@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+selenium = "^4.23.1"
+browsermob-proxy = "^0.8.0"
+pillow = "^10.4.0"
+requests = "^2.32.3"
+pilmoji = "^2.0.4"
+fonttools = "^4.53.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
