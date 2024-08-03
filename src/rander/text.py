@@ -170,11 +170,12 @@ class TextBox:
                     #     line = word
                     #
                     # word = ''
-                    p.add_text(word)
-                    word = ''
-                    if is_chinese(_char):
-                        if p.check(' '):
-                            p.add_text(' ')
+                    if word:
+                        p.add_text(word)
+                        word = ''
+                        if is_chinese(_char):
+                            if p.check(' '):
+                                p.add_text(' ')
                     # If the character is not in the alphabet, add it to the line directly
                     # if Text(text=line + _char, fonts=self.fonts, spacing=self.spacing).get_length() <= max_width:
                     #     line += _char

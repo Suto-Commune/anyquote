@@ -24,9 +24,11 @@
 @Date       : 2024/7/31 下午1:12
 """
 import json
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 
+import qrcode
 import requests
 from PIL import Image, ImageDraw
 from selenium import webdriver
@@ -101,7 +103,11 @@ def get_tweet_info(url: str):
     user_avatar_raw = resp.content
     user_avatar = Image.open(BytesIO(user_avatar_raw))
     print(context)
-    return user_name, user_id, user_avatar, context, medias
+    # /data/tweetResult/result/legacy/created_at
+    time_ctime = j.get('data').get('tweetResult').get('result').get('legacy').get('created_at')
+    t = datetime.strptime(time_ctime, "%a %b %d %H:%M:%S %z %Y")
+
+    return user_name, user_id, user_avatar, context, medias, t
 
 
 def gen_rounded_mask(radius):
@@ -128,31 +134,33 @@ def gen_rounded_rectangle_mask(size, raduis):
 
 
 def gen_image(url: str):
-    user_name, user_id, user_avatar, context, medias = get_tweet_info(url)
-    base_size = 90
+    user_name, user_id, user_avatar, context, medias,t = get_tweet_info(url)
+    base_size =100
+    base_ratio = base_size / 100
+    base_font_size = 90*base_size
     if True:  # The define of fonts. Fold it pls.
         fonts_context = [
             Font(Path('assets/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf'),
-                 size=base_size * 1),
+                 size=base_font_size * 1),
             Font(Path('assets/NotoEmoji-VariableFont_wght.ttf'),
-                 size=base_size * 1,
+                 size=base_font_size * 1,
                  offset=(0, int(20 * 1)))
         ]
         fonts_name = [
             Font(
                 Path('assets/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Bold.otf'),
-                size=int(base_size * 1.2)
+                size=int(base_font_size * 1.2)
             ),
             Font(
                 Path('assets/NotoEmoji-VariableFont_wght.ttf'),
-                size=int(base_size * 1.2),
+                size=int(base_font_size * 1.2),
                 offset=(0, int(20 * 1.2))
             )
         ]
         fonts_id = [
             Font(
                 Path('assets/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Light.otf'),
-                size=int(base_size * 0.64)
+                size=int(base_font_size * 0.64)
             ),
         ]
 
@@ -161,12 +169,12 @@ def gen_image(url: str):
         text=context,
         fonts=fonts_context,
         max_width=1800,
-        line_spacing=int(base_size / 3),
-        spacing=int(base_size / 7)
+        line_spacing=int(base_font_size / 3),
+        spacing=int(base_font_size / 7)
     )
 
     # Init image
-    img = Image.new('RGB', (2000, context_textbox.high + 600), (255, 255, 255))
+    img = Image.new('RGB', (2000, context_textbox.high + 800), (255, 255, 255))
     # img.paste(user_avatar.resize((300, 300)), (100, 100), mask=gen_rounded_mask(5000).resize((300, 300)))
     img.paste(user_avatar.resize((300, 300)), (100, 100),
               mask=gen_rounded_rectangle_mask((5000, 5000), 1000).resize((300, 300)))
@@ -177,13 +185,15 @@ def gen_image(url: str):
     # Draw username
     Text(text=user_name, fonts=fonts_name).draw(draw, (user_info_x, 135), (0, 0, 0))
     # Draw user id
-    Text(f'@{user_id}', fonts_id).draw(draw, (user_info_x, 135 + int(base_size * 1.5)), (128, 128, 128))
+    Text(f'@{user_id}', fonts_id).draw(draw, (user_info_x, 135 + int(base_font_size * 1.5)), (128, 128, 128))
+
     # Draw context
     context_textbox.draw(draw, 100, 500)
-
-    img_rt=Image.new('RGBA',img.size,(255,255,255,255))
-    x,y=img.size
-    img_rt.paste(img,(0,0),mask=gen_rounded_rectangle_mask((x*5,y*5),300).resize((x,y)))
+    Text(t.strftime("%I:%M %p · %b %d, %y"), fonts_id).draw(draw, (100, context_textbox.high + 600), (128, 128, 128))
+    qrc=qrcode.make(url)
+    img_rt = Image.new('RGBA', img.size, (255, 255, 255, 0))
+    x, y = img.size
+    img_rt.paste(img, (0, 0), mask=gen_rounded_rectangle_mask((x * 5, y * 5), 300).resize((x, y)))
     return img_rt
 
 
@@ -192,12 +202,12 @@ def main():
     # print(gen_image('https://x.com/boiledwater/status/1818074624799785134'))
     # gen_image('https://x.com/tuan_xiaowu/status/1813225555573239851')
     # gen_image('https://x.com/yqua_/status/1798916338104340988')
+    gen_image('https://x.com/HANLIANYI331/status/1799144853785256427').save('temp.png')
     gen_image('https://x.com/boiledwater/status/1818074624799785134').save('temp4.png')
     gen_image('https://x.com/POTUS/status/1819058362698400016').save('temp2.png')
     gen_image('https://x.com/HANLIANYI331/status/1790585954220298420').save('temp1.png')
 
     gen_image('https://x.com/Cldeop/status/1818310350112182313').save('temp3.png')
-
 
 
 if __name__ == '__main__':

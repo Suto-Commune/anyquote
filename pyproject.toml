@@ -13,6 +13,7 @@ pillow = "^10.4.0"
 requests = "^2.32.3"
 pilmoji = "^2.0.4"
 fonttools = "^4.53.1"
+qrcode = "^7.4.2"
 
 
 [build-system]
