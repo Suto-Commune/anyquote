@@ -31,6 +31,8 @@ from pathlib import Path
 import qrcode
 import requests
 from PIL import Image, ImageDraw
+from qrcode.image.styledpil import StyledPilImage
+from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.chrome.options import Options
@@ -133,34 +135,48 @@ def gen_rounded_rectangle_mask(size, raduis):
     return mask
 
 
+class Zoomer:
+    def __init__(self, base_ratio: float):
+        self.base_ratio = base_ratio
+
+    def zoom(self, size):
+        return int(size * self.base_ratio)
+
+    def zoom_tuple(self, size: tuple):
+        return tuple(map(self.zoom, size))
+
+    def __call__(self, size):
+        return self.zoom(size)
+
+
 def gen_image(url: str):
-    user_name, user_id, user_avatar, context, medias,t = get_tweet_info(url)
-    base_size =100
-    base_ratio = base_size / 100
-    base_font_size = 90*base_size
+    user_name, user_id, user_avatar, context, medias, t = get_tweet_info(url)
+    zoomer = Zoomer(0.5)
+    base_font_size = zoomer(90)
+    font_zoomer = Zoomer(zoomer(90))
     if True:  # The define of fonts. Fold it pls.
         fonts_context = [
             Font(Path('assets/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf'),
-                 size=base_font_size * 1),
+                 size=font_zoomer(1)),
             Font(Path('assets/NotoEmoji-VariableFont_wght.ttf'),
-                 size=base_font_size * 1,
-                 offset=(0, int(20 * 1)))
+                 size=font_zoomer(1),
+                 offset=(0, font_zoomer(20 / 90)))
         ]
         fonts_name = [
             Font(
                 Path('assets/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Bold.otf'),
-                size=int(base_font_size * 1.2)
+                size=font_zoomer(1.2)
             ),
             Font(
                 Path('assets/NotoEmoji-VariableFont_wght.ttf'),
-                size=int(base_font_size * 1.2),
-                offset=(0, int(20 * 1.2))
+                size=font_zoomer(1.2),
+                offset=(0, font_zoomer(20 * 1.2 / 90))
             )
         ]
         fonts_id = [
             Font(
                 Path('assets/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Light.otf'),
-                size=int(base_font_size * 0.64)
+                size=font_zoomer(0.64)
             ),
         ]
 
@@ -168,32 +184,37 @@ def gen_image(url: str):
     context_textbox = TextBox(
         text=context,
         fonts=fonts_context,
-        max_width=1800,
-        line_spacing=int(base_font_size / 3),
-        spacing=int(base_font_size / 7)
+        max_width=zoomer(1800),
+        line_spacing=font_zoomer(1 / 3),
+        spacing=font_zoomer(1 / 7)
     )
 
     # Init image
-    img = Image.new('RGB', (2000, context_textbox.high + 800), (255, 255, 255))
+    img = Image.new('RGB', (zoomer(2000), context_textbox.high + zoomer(1000)), (255, 255, 255))
     # img.paste(user_avatar.resize((300, 300)), (100, 100), mask=gen_rounded_mask(5000).resize((300, 300)))
-    img.paste(user_avatar.resize((300, 300)), (100, 100),
-              mask=gen_rounded_rectangle_mask((5000, 5000), 1000).resize((300, 300)))
+
+    img.paste(user_avatar.resize((zoomer(300), zoomer(300))), (zoomer(100), zoomer(100)),
+              mask=gen_rounded_rectangle_mask((5000, 5000), 1000).resize((zoomer(300), zoomer(300))))
     draw = ImageDraw.Draw(img)
 
-    user_info_x = 460  # Base x of user info
+    user_info_x = zoomer(460)  # Base x of user info
 
     # Draw username
-    Text(text=user_name, fonts=fonts_name).draw(draw, (user_info_x, 135), (0, 0, 0))
+    Text(text=user_name, fonts=fonts_name).draw(draw, (user_info_x, zoomer(135)), (0, 0, 0))
     # Draw user id
-    Text(f'@{user_id}', fonts_id).draw(draw, (user_info_x, 135 + int(base_font_size * 1.5)), (128, 128, 128))
+    Text(f'@{user_id}', fonts_id).draw(draw, (user_info_x, zoomer(135) + font_zoomer(1.5)), (128, 128, 128))
 
     # Draw context
-    context_textbox.draw(draw, 100, 500)
-    Text(t.strftime("%I:%M %p · %b %d, %y"), fonts_id).draw(draw, (100, context_textbox.high + 600), (128, 128, 128))
-    qrc=qrcode.make(url)
+    context_textbox.draw(draw, zoomer(100), zoomer(500))
+    Text(t.strftime("%I:%M %p · %b %d, %y"), fonts_id).draw(draw, (zoomer(100), context_textbox.high + zoomer(700)), (128, 128, 128))
+    qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_L)
+    # 如果想扫描二维码后跳转到网页，需要添加https://
+    qr.add_data(url)
+    qrc = qr.make_image(image_factory=StyledPilImage, module_drawer=RoundedModuleDrawer())
+    img.paste(qrc.resize((zoomer(300), zoomer(300))), (zoomer(1600), context_textbox.high + zoomer(600)))
     img_rt = Image.new('RGBA', img.size, (255, 255, 255, 0))
     x, y = img.size
-    img_rt.paste(img, (0, 0), mask=gen_rounded_rectangle_mask((x * 5, y * 5), 300).resize((x, y)))
+    img_rt.paste(img, (0, 0), mask=gen_rounded_rectangle_mask((x * 5, y * 5), zoomer(300)).resize((x, y)))
     return img_rt
 
 
