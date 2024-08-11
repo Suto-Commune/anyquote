@@ -34,8 +34,23 @@ class Font:
     def __init__(self, font: str | PathLike, size=20, offset: tuple[int, int] = None):
         self.font = font
         self.ttf = TTFont(font)
-        self.imf = ImageFont.truetype(font, size)
+        self._imf = None
         self.offset = offset
+        self.best_cmap = self.ttf.getBestCmap()
+        self.size = size
+        self.glyphs = self.ttf.getGlyphSet()
+
+    @property
+    def imf(self):
+        if self._imf is None:
+            self._imf = ImageFont.truetype(self.font, self.size)
+        return self._imf
+
+    def get_char_size(self, _char):
+        units_per_em = self.ttf['head'].unitsPerEm
+        rate = self.size / units_per_em
+        word_graph = self.glyphs.get(self.best_cmap[ord(_char)])
+        return word_graph.width * rate, word_graph.height * rate
 
 
 def in_alphabet_range(char: str):
@@ -73,8 +88,7 @@ class Line:
                 for word in words:
                     text = Text(text=word, fonts=self.fonts, spacing=0)
                     text.draw(draw, (x, y), fill)
-                    x += text.get_length() + space+self.spacing
-
+                    x += text.get_length() + space + self.spacing
 
     def getbbox(self):
         if self.align == 'left':
@@ -123,7 +137,6 @@ class Paragraph:
             self.new_line(text)
 
     def check(self, text: str):
-        print(self.max_width)
         return Text(text=self.unfinished_line.text + text, fonts=self.fonts,
                     spacing=self.spacing).get_length() <= self.max_width
 
@@ -152,8 +165,8 @@ class TextBox:
 
             word = ''
 
-            for i,_char in enumerate(paragraph):
-                _char:str
+            for i, _char in enumerate(paragraph):
+                _char: str
 
                 # If the character is in the alphabet, add it as a word
                 if in_alphabet_range(_char):
@@ -197,15 +210,14 @@ class TextBox:
                                 extra = p.unfinished_line.text[-1]
                                 p.unfinished_line.text = p.unfinished_line.text[:-1]
 
-                            p.new_line(extra+_char)
+                            p.new_line(extra + _char)
                         else:
                             p.add_text(_char)
 
-                if i+1 < len(paragraph):
+                if i + 1 < len(paragraph):
 
-                    if is_chinese(_char) and in_alphabet_range(paragraph[i+1]):
+                    if is_chinese(_char) and in_alphabet_range(paragraph[i + 1]):
                         if p.check(' '):
-
                             p.add_text(' ')
             if word:
                 p.add_text(word)
@@ -261,17 +273,15 @@ class Text:  # blog: layout
         for i, word in enumerate(text):
             offset_x, offset_y = 0, 0
             for font in self.fonts:
-                ttf = font.ttf
-
-                if ord(word) in ttf.getBestCmap():
-                    _len = font.imf.getlength(word)
+                if ord(word) in font.best_cmap:
+                    _len = font.get_char_size(word)[0]
                     # Chinese optimization
                     if i == 0 and word in "《（【“":
-                        _len = font.imf.getlength(word) / 2
+                        _len = _len / 2
                         offset_x = -_len
                     if len(text) > i + 1:
                         if word in "》）】，。、；：？！”" and text[i + 1] in "《（【，。、“":
-                            _len = font.imf.getlength(word) / 2
+                            _len = _len / 2
 
                     self.texts.append((word, font, _len, (offset_x, offset_y)))
                     break
@@ -294,17 +304,31 @@ class Text:  # blog: layout
         x, y = 0, 0
 
         for word, font, _len, _ in self.texts:
+            # word_graph = font.ttf.getGlyphSet().get(font.best_cmap[ord(word)])
             if is_halfwidth(word):
                 x += _len + self.spacing / 4
             else:
                 x += (_len + self.spacing)
-            y = max(y,
-                    font.imf.getbbox(word)[3] - font.imf.getbbox(word)[1])
-
+            # bbox=font.imf.getbbox(word)
+            # units_per_em = font.ttf['head'].unitsPerEm
+            # print(font.ttf.getBestCmap()[ord("h")])
+            # h,htsb=font.ttf.getGlyphSet().hMetrics[font.ttf.getGlyphName(ord(word))]
+            # w, wtsb = font.ttf.getGlyphSet().vMetrics[font.ttf.getGlyphName(ord(word))]
+            # rate = font.size / units_per_em
+            # print(h*rate,htsb*rate,w*rate,wtsb*rate,bbox,font.size,word)
+            # print(font.ttf.getGlyphSet().get(font.ttf.getGlyphName(ord(word))).width*rate,font.ttf.getGlyphSet().get(font.ttf.getGlyphName(ord(word))).height*rate)
+            # y = max(y, bbox[3] - bbox[1])
+            y = max(y, font.get_char_size(word)[1])
         return x, y
 
     def get_length(self):
-        return self.getbbox()[0]
+        x = 0
+        for word, font, _len, _ in self.texts:
+            if is_halfwidth(word):
+                x += _len + self.spacing / 4
+            else:
+                x += (_len + self.spacing)
+        return x
 
     def __repr__(self):
         return self.text

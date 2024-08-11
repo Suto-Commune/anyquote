@@ -23,6 +23,9 @@
 
 @Date       : 2024/8/2 下午7:26
 """
-from src.main import main
+import cProfile
+
+from src.main import main,get_tweet_info_login
 if __name__ == '__main__':
     main()
+    #get_tweet_info_login('https://x.com/HANLIANYI331/status/1799144853785256427')
