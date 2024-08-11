@@ -8,13 +8,11 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 selenium = "^4.23.1"
-browsermob-proxy = "^0.8.0"
+
 pillow = "^10.4.0"
 requests = "^2.32.3"
-pilmoji = "^2.0.4"
 fonttools = "^4.53.1"
 qrcode = "^7.4.2"
-twikit = "^2.1.0"
 twitter-api-client = "^0.10.22"
 python-telegram-bot = "^21.4"
 
