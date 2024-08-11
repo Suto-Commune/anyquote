@@ -35,7 +35,7 @@ class Font:
         self.font = font
         self.ttf = TTFont(font)
         self._imf = None
-        self.offset = offset
+        self.offset = (0, 0) if offset is None else (offset[0]/size, offset[1]/size)
         self.best_cmap = self.ttf.getBestCmap()
         self.size = size
         self.glyphs = self.ttf.getGlyphSet()
@@ -51,6 +51,10 @@ class Font:
         rate = self.size / units_per_em
         word_graph = self.glyphs.get(self.best_cmap[ord(_char)])
         return word_graph.width * rate, word_graph.height * rate
+
+    def set_size(self, size):
+        self.size = size
+        self._imf = None
 
 
 def in_alphabet_range(char: str):
@@ -174,15 +178,6 @@ class TextBox:
 
                 else:
                     # If the character is a space and the word is not empty, add the word to the line
-                    # if word:
-                    # if Text(text=line + word, fonts=self.fonts, spacing=self.spacing).get_length() <= max_width:
-                    #     line += word
-                    # else:
-                    #     # If the word is too long, add the line to the paragraph and start a new line
-                    #     lines.append(Line(line, spacing=spacing, fonts=fonts, align='justify', max_width=max_width))
-                    #     line = word
-                    #
-                    # word = ''
                     if word:
                         p.add_text(word)
                         word = ''
@@ -190,12 +185,6 @@ class TextBox:
                             if p.check(' '):
                                 p.add_text(' ')
                     # If the character is not in the alphabet, add it to the line directly
-                    # if Text(text=line + _char, fonts=self.fonts, spacing=self.spacing).get_length() <= max_width:
-                    #     line += _char
-                    # else:
-                    #     # If the line is too long, add the line to the paragraph and start a new line
-                    #     lines.append(Line(line, fonts=fonts, spacing=spacing, align='justify', max_width=max_width))
-                    #     line = _char if _char != ' ' else ''  # If the character is a space, delete it
                     if p.check(_char):
                         p.add_text(_char)
                     else:
@@ -222,14 +211,12 @@ class TextBox:
             if word:
                 p.add_text(word)
             self.paragraphs.append(p)
-        print(self.paragraphs)
 
     @property
     def high(self):
         _sum = 0
         for paragraph in self.paragraphs:
             for line in paragraph:
-                # x, y = Text(text=line.text, fonts=self.fonts, spacing=self.spacing).getbbox()
                 _sum += line.getbbox()[1]  # y
                 _sum += self.line_spacing
             _sum -= self.line_spacing
@@ -240,12 +227,8 @@ class TextBox:
     def draw(self, draw: ImageDraw, x, y):
         for paragraph in self.paragraphs:
             for line in paragraph:
-                # text = Text(line.text, self.fonts, spacing=self.spacing)
-                # text.draw(draw=draw, xy=(x, y), fill=(0, 0, 0))
                 line.draw(draw, (x, y), (0, 0, 0))
-                # print(line)
                 y += line.getbbox()[1]  # text.getbbox()[1] is the height of the text
-                # y += y
                 y += self.line_spacing
             y -= self.line_spacing
             y += self.line_spacing * 3
@@ -304,20 +287,10 @@ class Text:  # blog: layout
         x, y = 0, 0
 
         for word, font, _len, _ in self.texts:
-            # word_graph = font.ttf.getGlyphSet().get(font.best_cmap[ord(word)])
             if is_halfwidth(word):
                 x += _len + self.spacing / 4
             else:
                 x += (_len + self.spacing)
-            # bbox=font.imf.getbbox(word)
-            # units_per_em = font.ttf['head'].unitsPerEm
-            # print(font.ttf.getBestCmap()[ord("h")])
-            # h,htsb=font.ttf.getGlyphSet().hMetrics[font.ttf.getGlyphName(ord(word))]
-            # w, wtsb = font.ttf.getGlyphSet().vMetrics[font.ttf.getGlyphName(ord(word))]
-            # rate = font.size / units_per_em
-            # print(h*rate,htsb*rate,w*rate,wtsb*rate,bbox,font.size,word)
-            # print(font.ttf.getGlyphSet().get(font.ttf.getGlyphName(ord(word))).width*rate,font.ttf.getGlyphSet().get(font.ttf.getGlyphName(ord(word))).height*rate)
-            # y = max(y, bbox[3] - bbox[1])
             y = max(y, font.get_char_size(word)[1])
         return x, y
 

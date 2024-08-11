@@ -17,9 +17,28 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-@File       : __init__.py.py
+@File       : test.py
 
 @Author     : hsn
 
-@Date       : 2024/8/2 下午7:25
+@Date       : 2024/8/11 下午8:43
 """
+import unittest
+from datetime import datetime
+
+
+class Test(unittest.TestCase):
+    def test_quote(self):
+        from PIL import Image
+        from anyquote import quote
+
+        img = Image.new("RGB", (128, 128))
+        quote(user_name='hsn', user_id='@hsn8086', user_avatar=img, context='Hello World', t=datetime.now())
+
+    def test_start(self):
+        from anyquote import quote_twitter
+        quote_twitter('https://x.com/B_cat38324/status/1819902409319313541')
+
+
+if __name__ == '__main__':
+    unittest.main()
