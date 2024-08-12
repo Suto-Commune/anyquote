@@ -181,9 +181,9 @@ class TextBox:
                     if word:
                         p.add_text(word)
                         word = ''
-                        if is_chinese(_char):
-                            if p.check(' '):
-                                p.add_text(' ')
+                        # if is_chinese(_char):
+                        #     if p.check(' '):
+                        #         p.add_text(' ')
                     # If the character is not in the alphabet, add it to the line directly
                     if p.check(_char):
                         p.add_text(_char)
@@ -203,11 +203,11 @@ class TextBox:
                         else:
                             p.add_text(_char)
 
-                if i + 1 < len(paragraph):
-
-                    if is_chinese(_char) and in_alphabet_range(paragraph[i + 1]):
-                        if p.check(' '):
-                            p.add_text(' ')
+                # if i + 1 < len(paragraph):
+                #
+                #     if is_chinese(_char) and in_alphabet_range(paragraph[i + 1]):
+                #         if p.check(' '):
+                #             p.add_text(' ')
             if word:
                 p.add_text(word)
             self.paragraphs.append(p)
@@ -269,7 +269,7 @@ class Text:  # blog: layout
                     self.texts.append((word, font, _len, (offset_x, offset_y)))
                     break
             else:
-                raise Exception(f'Can not find {word} in fonts')
+                raise Exception(f'Can not find {word}:{ord(word)} in fonts')
 
     def draw(self, draw: ImageDraw, xy: tuple[int, int], fill: tuple[int, int, int]):
         x, y = xy
