@@ -102,8 +102,9 @@ class Line:
                 text.draw(draw, (x, y), fill)
             else:
                 total_length = text.get_length()
-                space = (self.max_width - total_length) / (words_count - 1)
-
+                hf_count = len(list(filter(is_halfwidth, words)))
+                count = words_count - hf_count
+                space = (self.max_width - total_length) / (hf_count / 4 + count)
                 Text(text=self.text, fonts=self.fonts, spacing=space).draw(draw, (x, y), fill)
 
     def getbbox(self):
@@ -167,13 +168,20 @@ class Paragraph:
 
 
 class TextBox:
-    def __init__(self, text: str, fonts: [Font], max_width: int = math.inf, line_spacing: int = 0, spacing: int = 0):
+    def __init__(self,
+                 text: str,
+                 fonts: [Font],
+                 max_width: int = math.inf,
+                 line_spacing: int = 0,
+                 spacing: int = 0,
+                 symbol_push: bool = True):
         self.text = text
         self.fonts = fonts
         self.max_width = max_width
         self.line_spacing = line_spacing
         self.spacing = spacing
         self.paragraphs = []
+        self.symbols = '，。、；：？！\'":《（【“”』'
         for paragraph in map(lambda x: list(x), text.split('\n')):
             p = Paragraph(line_spacing=line_spacing, spacing=spacing, fonts=fonts, max_width=max_width, align='justify')
 
@@ -204,8 +212,9 @@ class TextBox:
                               self.max_width)
                         if _char == ' ':
                             p.new_line()
-                        elif _char in '，。、；：？！\'":《（【“”』':
+                        elif _char in self.symbols:
                             if is_alpha(p.unfinished_line.text[-1]):
+                                # find the last space
                                 for index, c in enumerate(p.unfinished_line.text[::-1]):
                                     if is_alpha(c):
                                         pos = len(p.unfinished_line.text) - index
@@ -213,9 +222,18 @@ class TextBox:
                                 else:
                                     pos = len(p.unfinished_line.text)
                                 # pos = p.unfinished_line.text.rfind(' ')
+                                # move the extra characters to the next line
                                 extra = p.unfinished_line.text[pos:]
                                 p.unfinished_line.text = p.unfinished_line.text[:pos]
                             else:
+                                if symbol_push:
+                                    symbols = filter(lambda x: x in self.symbols, p.unfinished_line.text)
+                                    symbol_count = len(list(symbols))
+                                    if 1 / symbol_count < 0.5:
+                                        p.add_text(_char)
+                                        p.new_line()
+                                        continue
+
                                 extra = p.unfinished_line.text[-1]
                                 p.unfinished_line.text = p.unfinished_line.text[:-1]
 
