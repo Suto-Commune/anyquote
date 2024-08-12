@@ -214,7 +214,8 @@ class TextBox:
         self.line_spacing = line_spacing
         self.spacing = spacing
         self.paragraphs = []
-        self.full_width_symbols = '，。、；：？！\'":《（【“”』'
+        self.full_width_symbols = '，。、；：？！:《（【“”』'
+        self.symbols = self.full_width_symbols + '\'",.[](){}<>'
         # split the text into paragraphs
         for paragraph in map(lambda x: list(x), text.split('\n')):
             # create a new paragraph
@@ -244,16 +245,24 @@ class TextBox:
                     if p.check(_char):  # check if the character can be added to the line
                         p.add_text(_char)
                     else:
-                        print(p.unfinished_line.getbbox())
                         # If the character is a space, ignore it.
                         if _char == ' ':
                             continue
-                        elif _char in self.full_width_symbols:
-                            if is_alpha(p.unfinished_line.text[-1]):
+                        elif _char in self.symbols:
+                            # if symbol_push is True, push the full-width symbol into small space
+                            if symbol_push:
+                                symbols = filter(lambda x: x in self.full_width_symbols, p.unfinished_line.text)
+                                symbol_count = len(list(symbols))
+                                symbol_count = 0.01 if symbol_count == 0 else symbol_count
+                                if 1 / symbol_count < symbol_push_threshold[0]:
+                                    p.add_text(_char)
+                                    p.new_line()
+                                    continue
+                            if is_alpha(p.unfinished_line.text[-1]) or p.unfinished_line.text[-1] in self.symbols:
                                 # if the last character is an alphabet, find the whole word's position
                                 # find the last space
                                 for index, c in enumerate(p.unfinished_line.text[::-1]):
-                                    if is_alpha(c):
+                                    if not is_alpha(c) and c not in self.symbols:
                                         pos = len(p.unfinished_line.text) - index
                                         break
                                 else:
@@ -264,14 +273,6 @@ class TextBox:
                                 extra = p.unfinished_line.text[pos:]
                                 p.unfinished_line.text = p.unfinished_line.text[:pos]
                             else:
-                                # if symbol_push is True, push the full-width symbol into small space
-                                if symbol_push:
-                                    symbols = filter(lambda x: x in self.full_width_symbols, p.unfinished_line.text)
-                                    symbol_count = len(list(symbols))
-                                    if 1 / symbol_count < symbol_push_threshold[0]:
-                                        p.add_text(_char)
-                                        p.new_line()
-                                        continue
 
                                 extra = p.unfinished_line.text[-1]
                                 p.unfinished_line.text = p.unfinished_line.text[:-1]
