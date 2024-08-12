@@ -112,7 +112,11 @@ class Line:
                 count = words_count - hf_count
 
                 if (diff := (self.max_width - total_length)) > 0:
-                    space = diff / (hf_count / 4 + count)
+                    if is_halfwidth(self.text[-1]):
+                        q = 0.25
+                    else:
+                        q = 1
+                    space = diff / (hf_count / 4 + count - q)
                     Text(text=self.text, fonts=self.fonts, spacing=space).draw(draw, (x, y), fill)
                 else:
                     symbols = filter(lambda a: a in self.full_width_symbols, self.text)

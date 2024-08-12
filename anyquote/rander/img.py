@@ -82,7 +82,7 @@ def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, use
                  size=font_zoomer(1)),
             Font(Path(assets_path / 'NotoEmoji-VariableFont_wght.ttf'),
                  size=font_zoomer(1),
-                 offset=(0, font_zoomer(20 / 90)))
+                 offset=(0, font_zoomer(8)))
         ]
         fonts_name = [
             Font(
@@ -92,7 +92,7 @@ def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, use
             Font(
                 Path(assets_path / 'NotoEmoji-VariableFont_wght.ttf'),
                 size=font_zoomer(1.2),
-                offset=(0, font_zoomer(20 * 1.2 / 90))
+                offset=(0, font_zoomer(8 * 1.2))
             )
         ]
         fonts_id = [
@@ -153,4 +153,5 @@ def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, use
 
 def quote_twitter(url: str):
     user_name, user_id, user_avatar, context, medias, t = get_tweet_info(url)
-    return quote(user_name=user_name, user_avatar=user_avatar, context=context, _time=t, user_id=user_id, medias=medias,source=url)
+    return quote(user_name=user_name, user_avatar=user_avatar, context=context, _time=t, user_id=user_id, medias=medias,
+                 source=url)
