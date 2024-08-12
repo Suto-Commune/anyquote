@@ -186,6 +186,7 @@ class Paragraph:
 
     def new_line(self, text: str = ''):
         self.unfinished_line.align = self.align
+        self.unfinished_line.text = self.unfinished_line.text.rstrip()
         self.lines.append(self.unfinished_line)
         self.unfinished_line = Line(text, fonts=self.fonts, spacing=0, align='left', max_width=self.max_width)
 
@@ -330,7 +331,7 @@ class Text:  # blog: layout
                     if i == 0 and word in "《（【〔“":
                         _len = _len / 2
                         offset_x = -_len
-                    elif i == len(text) - 1 and word in "》）】〕”、":
+                    elif i == len(text) - 1 and word in "》）】〕”、。":
                         _len = _len / 2
                     if len(text) > i + 1:
                         if word in "》）】，。、；：？！”" and text[i + 1] in "《（【，。、“":
