@@ -30,12 +30,30 @@ from PIL import ImageDraw, ImageFont
 from fontTools.ttLib import TTFont
 
 
+def is_halfwidth(char):
+    """
+    判断一个字符是否是半角
+    """
+    if len(char) != len(char.encode()):
+        return False
+    else:
+        return True
+
+
+def is_chinese(char: str):
+    return 0x3400 <= ord(char) <= 0x4dbf or 0x4e00 <= ord(char) <= 0x9faf
+
+
+def is_alpha(char: str):
+    return 0x0030 <= ord(char) <= 0x0039 or 0x0041 <= ord(char) <= 0x005a or 0x0061 <= ord(char) <= 0x007a
+
+
 class Font:
     def __init__(self, font: str | PathLike, size=20, offset: tuple[int, int] = None):
         self.font = font
         self.ttf = TTFont(font)
         self._imf = None
-        self.offset = (0, 0) if offset is None else (offset[0]/size, offset[1]/size)
+        self.offset = (0, 0) if offset is None else (offset[0] / size, offset[1] / size)
         self.best_cmap = self.ttf.getBestCmap()
         self.size = size
         self.glyphs = self.ttf.getGlyphSet()
@@ -55,10 +73,6 @@ class Font:
     def set_size(self, size):
         self.size = size
         self._imf = None
-
-
-def in_alphabet_range(char: str):
-    return char in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 class Line:
@@ -89,10 +103,8 @@ class Line:
             else:
                 total_length = text.get_length()
                 space = (self.max_width - total_length) / (words_count - 1)
-                for word in words:
-                    text = Text(text=word, fonts=self.fonts, spacing=0)
-                    text.draw(draw, (x, y), fill)
-                    x += text.get_length() + space + self.spacing
+
+                Text(text=self.text, fonts=self.fonts, spacing=space).draw(draw, (x, y), fill)
 
     def getbbox(self):
         if self.align == 'left':
@@ -121,18 +133,16 @@ class Line:
         return self.text
 
 
-def is_chinese(char: str):
-    return '\u4e00' <= char <= '\u9fa5'
-
-
 class Paragraph:
-    def __init__(self, fonts: list[Font], spacing: int = 0, line_spacing: int = 0, max_width: int = math.inf):
+    def __init__(self, fonts: list[Font], spacing: int = 0, line_spacing: int = 0, max_width: int = math.inf,
+                 align='justify'):
         self.lines = []
         self.max_width = max_width
         self.line_spacing = line_spacing
         self.spacing = spacing
         self.fonts = fonts
         self.unfinished_line = Line('', fonts=fonts, spacing=0, align='left', max_width=max_width)
+        self.align = align
 
     def add_text(self, text: str):
         try:
@@ -145,7 +155,7 @@ class Paragraph:
                     spacing=self.spacing).get_length() <= self.max_width
 
     def new_line(self, text: str = ''):
-        self.unfinished_line.align = 'justify'
+        self.unfinished_line.align = self.align
         self.lines.append(self.unfinished_line)
         self.unfinished_line = Line(text, fonts=self.fonts, spacing=0, align='left', max_width=self.max_width)
 
@@ -165,7 +175,7 @@ class TextBox:
         self.spacing = spacing
         self.paragraphs = []
         for paragraph in map(lambda x: list(x), text.split('\n')):
-            p = Paragraph(line_spacing=line_spacing, spacing=spacing, fonts=fonts, max_width=max_width)
+            p = Paragraph(line_spacing=line_spacing, spacing=spacing, fonts=fonts, max_width=max_width, align='justify')
 
             word = ''
 
@@ -173,7 +183,7 @@ class TextBox:
                 _char: str
 
                 # If the character is in the alphabet, add it as a word
-                if in_alphabet_range(_char):
+                if is_alpha(_char):
                     word += _char
 
                 else:
@@ -185,14 +195,24 @@ class TextBox:
                         #     if p.check(' '):
                         #         p.add_text(' ')
                     # If the character is not in the alphabet, add it to the line directly
+
                     if p.check(_char):
                         p.add_text(_char)
                     else:
+                        print(_char,
+                              Text(text=p.unfinished_line.text + _char, fonts=fonts, spacing=spacing).get_length(),
+                              self.max_width)
                         if _char == ' ':
                             p.new_line()
-                        elif _char in '，。、；：？！\':《（【“”』':
-                            if in_alphabet_range(p.unfinished_line.text[-1]):
-                                pos = p.unfinished_line.text.rfind(' ')
+                        elif _char in '，。、；：？！\'":《（【“”』':
+                            if is_alpha(p.unfinished_line.text[-1]):
+                                for index, c in enumerate(p.unfinished_line.text[::-1]):
+                                    if is_alpha(c):
+                                        pos = len(p.unfinished_line.text) - index
+                                        break
+                                else:
+                                    pos = len(p.unfinished_line.text)
+                                # pos = p.unfinished_line.text.rfind(' ')
                                 extra = p.unfinished_line.text[pos:]
                                 p.unfinished_line.text = p.unfinished_line.text[:pos]
                             else:
@@ -201,7 +221,7 @@ class TextBox:
 
                             p.new_line(extra + _char)
                         else:
-                            p.add_text(_char)
+                            p.new_line(_char)
 
                 # if i + 1 < len(paragraph):
                 #
@@ -235,18 +255,8 @@ class TextBox:
         y -= self.line_spacing * 3
 
 
-def is_halfwidth(char):
-    """
-    判断一个字符是否是半角
-    """
-    if len(char) != len(char.encode()):
-        return False
-    else:
-        return True
-
-
 class Text:  # blog: layout
-    def __init__(self, text: str, fonts: list[Font], spacing: int = 0):
+    def __init__(self, text: str, fonts: list[Font], spacing: float = 0):
         self.text = text
         self.fonts = fonts
         self.spacing = spacing
@@ -259,12 +269,21 @@ class Text:  # blog: layout
                 if ord(word) in font.best_cmap:
                     _len = font.get_char_size(word)[0]
                     # Chinese optimization
-                    if i == 0 and word in "《（【“":
+                    if i == 0 and word in "《（【〔“":
                         _len = _len / 2
                         offset_x = -_len
                     if len(text) > i + 1:
                         if word in "》）】，。、；：？！”" and text[i + 1] in "《（【，。、“":
                             _len = _len / 2
+                        if is_chinese(word) and is_alpha(text[i + 1]):
+                            _len += font.size / 4
+                        elif is_alpha(word) and is_chinese(text[i + 1]):
+                            _len += font.size / 4
+                        elif len(text) > i + 2 and is_chinese(word) and is_halfwidth(text[i + 1]) and is_alpha(
+                                text[i + 2]):
+                            _len += font.size / 4
+                        elif i > 0 and is_alpha(text[i - 1]) and is_halfwidth(word) and is_chinese(text[i + 1]):
+                            _len += font.size / 4
 
                     self.texts.append((word, font, _len, (offset_x, offset_y)))
                     break
@@ -282,25 +301,33 @@ class Text:  # blog: layout
                 x += _len + self.spacing / 4
             else:
                 x += (_len + self.spacing)
+        print(x - xy[0], self.get_length())
 
     def getbbox(self):
         x, y = 0, 0
-
+        last_spacing = 0
         for word, font, _len, _ in self.texts:
             if is_halfwidth(word):
                 x += _len + self.spacing / 4
+                last_spacing = self.spacing / 4
             else:
                 x += (_len + self.spacing)
-            y = max(y, font.get_char_size(word)[1])
+                last_spacing = self.spacing
+            y = max(y, font.size)
+        x -= last_spacing
         return x, y
 
     def get_length(self):
         x = 0
+        last_spacing = 0
         for word, font, _len, _ in self.texts:
             if is_halfwidth(word):
                 x += _len + self.spacing / 4
+                last_spacing = self.spacing / 4
             else:
                 x += (_len + self.spacing)
+                last_spacing = self.spacing
+        x -= last_spacing
         return x
 
     def __repr__(self):
