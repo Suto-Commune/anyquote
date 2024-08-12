@@ -7,7 +7,7 @@ a simple quote generator using python.
 ```python
 from anyquote import quote
 
-print(quote())
+print(quote(,)
 ```
 
 # Installation

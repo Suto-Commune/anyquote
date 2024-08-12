@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-#  Copyright (C) 2023. HCAT-Project-Team
-#  _
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU Affero General Public License as
-#  published by the Free Software Foundation, either version 3 of the
-#  License, or (at your option) any later version.
-#  _
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU Affero General Public License for more details.
-#  _
-#  You should have received a copy of the GNU Affero General Public License
-#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#   Copyright (C) 2024. Suto-Commune
+#   _
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Affero General Public License as
+#   published by the Free Software Foundation, either version 3 of the
+#   License, or (at your option) any later version.
+#   _
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Affero General Public License for more details.
+#   _
+#   You should have received a copy of the GNU Affero General Public License
+#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 @File       : img.py
@@ -24,7 +24,6 @@
 @Date       : 2024/8/11 下午8:48
 """
 from datetime import datetime
-from os import PathLike
 from pathlib import Path
 
 import qrcode
@@ -32,8 +31,8 @@ from PIL import Image, ImageDraw
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 
-from ..internet.twi import get_tweet_info
 from .text import Font, TextBox, Text
+from ..internet.twi import get_tweet_info
 
 
 def gen_rounded_mask(radius):
@@ -70,40 +69,35 @@ class Zoomer:
         return self.zoom(size)
 
 
-def quote(user_name: str,
-          user_avatar: Image,
-          context: str,
-          t: datetime,
-          user_id: str = "",
-          medias: list[Image] = None,
-          source: str = ""):
+def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, user_id: str = "",
+          medias: list[Image] = None, source: str = ""):
     medias = medias or []
     zoomer = Zoomer(0.5)
     font_zoomer = Zoomer(zoomer(90))
     if True:  # The define of fonts. Fold it pls.
         import anyquote
-        assets_path=Path(anyquote.__file__).parent/"assets"
+        assets_path = Path(anyquote.__file__).parent / "assets"
         fonts_context = [
-            Font(Path(assets_path/'SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf'),
+            Font(Path(assets_path / 'SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf'),
                  size=font_zoomer(1)),
-            Font(Path(assets_path/'NotoEmoji-VariableFont_wght.ttf'),
+            Font(Path(assets_path / 'NotoEmoji-VariableFont_wght.ttf'),
                  size=font_zoomer(1),
                  offset=(0, font_zoomer(20 / 90)))
         ]
         fonts_name = [
             Font(
-                Path(assets_path/'SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Bold.otf'),
+                Path(assets_path / 'SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Bold.otf'),
                 size=font_zoomer(1.2)
             ),
             Font(
-                Path(assets_path/'NotoEmoji-VariableFont_wght.ttf'),
+                Path(assets_path / 'NotoEmoji-VariableFont_wght.ttf'),
                 size=font_zoomer(1.2),
                 offset=(0, font_zoomer(20 * 1.2 / 90))
             )
         ]
         fonts_id = [
             Font(
-                Path(assets_path/'SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Light.otf'),
+                Path(assets_path / 'SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Light.otf'),
                 size=font_zoomer(0.64)
             ),
         ]
@@ -139,8 +133,8 @@ def quote(user_name: str,
     # Draw context
 
     context_textbox.draw(draw, zoomer(100), zoomer(500))
-    Text(t.strftime("%I:%M %p · %b %d, %y"), fonts_id).draw(draw, (zoomer(100), context_textbox.high + zoomer(700)),
-                                                            (128, 128, 128))
+    Text(_time.strftime("%I:%M %p · %b %d, %y"), fonts_id).draw(draw, (zoomer(100), context_textbox.high + zoomer(700)),
+                                                                (128, 128, 128))
 
     if source:
         qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_L)
@@ -158,4 +152,4 @@ def quote(user_name: str,
 
 def quote_twitter(url: str):
     user_name, user_id, user_avatar, context, medias, t = get_tweet_info(url)
-    return quote(user_name=user_name, user_avatar=user_avatar, context=context, t=t, user_id=user_id, medias=medias)
+    return quote(user_name=user_name, user_avatar=user_avatar, context=context, _time=t, user_id=user_id, medias=medias)

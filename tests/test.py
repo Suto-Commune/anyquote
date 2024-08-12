@@ -33,7 +33,7 @@ class Test(unittest.TestCase):
         from anyquote import quote
 
         img = Image.new("RGB", (128, 128))
-        quote(user_name='hsn', user_id='@hsn8086', user_avatar=img, context='Hello World', t=datetime.now())
+        quote(user_name='hsn', user_avatar=img, context='Hello World', _time=datetime.now(), user_id='@hsn8086')
 
     def test_start(self):
         from anyquote import quote_twitter

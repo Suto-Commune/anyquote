@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anyquote"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["hsn <hsn1919810@gmail.com>"]
 readme = "README.md"
