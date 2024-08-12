@@ -174,7 +174,7 @@ class Paragraph:
         self.line_spacing = line_spacing
         self.spacing = spacing
         self.fonts = fonts
-        self.unfinished_line = Line('', fonts=fonts, spacing=0, align=align, max_width=max_width,
+        self.unfinished_line = Line('', fonts=fonts, spacing=0, align='left', max_width=max_width,
                                     symbol_push=symbol_push,
                                     symbol_push_threshold=symbol_push_threshold)
         self.align = align
