@@ -76,18 +76,24 @@ class Font:
 
 
 class Line:
-    def __init__(self, text: str, fonts: [Font], spacing: int, align: str = 'left', max_width: int = math.inf):
+    def __init__(self, text: str, fonts: [Font], spacing: int, align: str = 'left', max_width: int = math.inf,
+                 symbol_push: bool = True, symbol_push_threshold: tuple[float, float] = (0.5, 1)):
         self.text = text
         self.align = align
         self.max_width = max_width
         self.fonts = fonts
         self.spacing = spacing
+        self.symbol_push = symbol_push
+        self.symbol_push_threshold = symbol_push_threshold
+        self.full_width_symbols = '，。、；：？！\'":《（【“”』'
 
     def __iter__(self):
         return iter(self.text)
 
     def draw(self, draw: ImageDraw, xy: tuple[int, int], fill: tuple[int, int, int]):
         x, y = xy
+        if self.text == '':
+            return
         text = Text(text=self.text, fonts=self.fonts, spacing=self.spacing)
         if self.align == 'left':
             text.draw(draw, (x, y), fill)
@@ -104,8 +110,21 @@ class Line:
                 total_length = text.get_length()
                 hf_count = len(list(filter(is_halfwidth, words)))
                 count = words_count - hf_count
-                space = (self.max_width - total_length) / (hf_count / 4 + count)
-                Text(text=self.text, fonts=self.fonts, spacing=space).draw(draw, (x, y), fill)
+
+                if (diff := (self.max_width - total_length)) > 0:
+                    space = diff / (hf_count / 4 + count)
+                    Text(text=self.text, fonts=self.fonts, spacing=space).draw(draw, (x, y), fill)
+                else:
+                    symbols = filter(lambda a: a in self.full_width_symbols, self.text)
+                    symbol_count = len(list(symbols))
+                    indentation = (-diff) / symbol_count
+                    texts = []
+                    for word, font, _len, font_offset in text.texts:
+                        if word in self.full_width_symbols:
+                            _len -= indentation
+                        texts.append((word, font, _len, font_offset))
+                    text.texts = texts
+                    text.draw(draw, (x, y), fill)
 
     def getbbox(self):
         if self.align == 'left':
@@ -128,6 +147,14 @@ class Line:
         if Text(text=self.text + text, fonts=self.fonts, spacing=self.spacing).get_length() <= self.max_width:
             self.text += text
         else:
+            if self.symbol_push:
+                symbols = filter(lambda x: x in self.full_width_symbols, self.text)
+                symbol_count = len(list(symbols))
+                if (Text(text=text, fonts=self.fonts, spacing=0).get_length() / symbol_count <
+                        1 - self.symbol_push_threshold[0]):
+                    self.text += text
+                    return
+
             raise EOFError('The text is too long to append')
 
     def __repr__(self):
@@ -136,13 +163,15 @@ class Line:
 
 class Paragraph:
     def __init__(self, fonts: list[Font], spacing: int = 0, line_spacing: int = 0, max_width: int = math.inf,
-                 align='justify'):
+                 align='justify', symbol_push: bool = True, symbol_push_threshold: tuple[float, float] = (0.5, 1)):
         self.lines = []
         self.max_width = max_width
         self.line_spacing = line_spacing
         self.spacing = spacing
         self.fonts = fonts
-        self.unfinished_line = Line('', fonts=fonts, spacing=0, align='left', max_width=max_width)
+        self.unfinished_line = Line('', fonts=fonts, spacing=0, align=align, max_width=max_width,
+                                    symbol_push=symbol_push,
+                                    symbol_push_threshold=symbol_push_threshold)
         self.align = align
 
     def add_text(self, text: str):
@@ -172,18 +201,25 @@ class TextBox:
                  text: str,
                  fonts: [Font],
                  max_width: int = math.inf,
+                 *,
                  line_spacing: int = 0,
                  spacing: int = 0,
-                 symbol_push: bool = True):
+                 symbol_push: bool = True,
+                 symbol_push_threshold: tuple[float, float] = (0.5, 1),
+
+                 ):
         self.text = text
         self.fonts = fonts
         self.max_width = max_width
         self.line_spacing = line_spacing
         self.spacing = spacing
         self.paragraphs = []
-        self.symbols = '，。、；：？！\'":《（【“”』'
+        self.full_width_symbols = '，。、；：？！\'":《（【“”』'
+        # split the text into paragraphs
         for paragraph in map(lambda x: list(x), text.split('\n')):
-            p = Paragraph(line_spacing=line_spacing, spacing=spacing, fonts=fonts, max_width=max_width, align='justify')
+            # create a new paragraph
+            p = Paragraph(line_spacing=line_spacing, spacing=spacing, fonts=fonts, max_width=max_width, align='justify',
+                          symbol_push=symbol_push, symbol_push_threshold=symbol_push_threshold)
 
             word = ''
 
@@ -195,6 +231,7 @@ class TextBox:
                     word += _char
 
                 else:
+
                     # If the character is a space and the word is not empty, add the word to the line
                     if word:
                         p.add_text(word)
@@ -202,18 +239,18 @@ class TextBox:
                         # if is_chinese(_char):
                         #     if p.check(' '):
                         #         p.add_text(' ')
-                    # If the character is not in the alphabet, add it to the line directly
 
-                    if p.check(_char):
+                    # If the character is not in the alphabet, add it to the line directly
+                    if p.check(_char):  # check if the character can be added to the line
                         p.add_text(_char)
                     else:
-                        print(_char,
-                              Text(text=p.unfinished_line.text + _char, fonts=fonts, spacing=spacing).get_length(),
-                              self.max_width)
+                        print(p.unfinished_line.getbbox())
+                        # If the character is a space, ignore it.
                         if _char == ' ':
-                            p.new_line()
-                        elif _char in self.symbols:
+                            continue
+                        elif _char in self.full_width_symbols:
                             if is_alpha(p.unfinished_line.text[-1]):
+                                # if the last character is an alphabet, find the whole word's position
                                 # find the last space
                                 for index, c in enumerate(p.unfinished_line.text[::-1]):
                                     if is_alpha(c):
@@ -221,15 +258,17 @@ class TextBox:
                                         break
                                 else:
                                     pos = len(p.unfinished_line.text)
-                                # pos = p.unfinished_line.text.rfind(' ')
+                                ###
+
                                 # move the extra characters to the next line
                                 extra = p.unfinished_line.text[pos:]
                                 p.unfinished_line.text = p.unfinished_line.text[:pos]
                             else:
+                                # if symbol_push is True, push the full-width symbol into small space
                                 if symbol_push:
-                                    symbols = filter(lambda x: x in self.symbols, p.unfinished_line.text)
+                                    symbols = filter(lambda x: x in self.full_width_symbols, p.unfinished_line.text)
                                     symbol_count = len(list(symbols))
-                                    if 1 / symbol_count < 0.5:
+                                    if 1 / symbol_count < symbol_push_threshold[0]:
                                         p.add_text(_char)
                                         p.new_line()
                                         continue
@@ -319,7 +358,6 @@ class Text:  # blog: layout
                 x += _len + self.spacing / 4
             else:
                 x += (_len + self.spacing)
-        print(x - xy[0], self.get_length())
 
     def getbbox(self):
         x, y = 0, 0
@@ -346,6 +384,7 @@ class Text:  # blog: layout
                 x += (_len + self.spacing)
                 last_spacing = self.spacing
         x -= last_spacing
+
         return x
 
     def __repr__(self):

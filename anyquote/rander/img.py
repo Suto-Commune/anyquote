@@ -110,7 +110,7 @@ def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, use
         max_width=zoomer(1800),
         line_spacing=font_zoomer(1 / 3),
         spacing=font_zoomer(1 / 6),
-        symbol_push=False
+        symbol_push=True
     )
 
     # Init image
