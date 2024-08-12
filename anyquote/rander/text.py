@@ -150,6 +150,7 @@ class Line:
             if self.symbol_push:
                 symbols = filter(lambda x: x in self.full_width_symbols, self.text)
                 symbol_count = len(list(symbols))
+                symbol_count = 0.01 if symbol_count == 0 else symbol_count
                 if (Text(text=text, fonts=self.fonts, spacing=0).get_length() / symbol_count <
                         1 - self.symbol_push_threshold[0]):
                     self.text += text
@@ -216,7 +217,7 @@ class TextBox:
         self.spacing = spacing
         self.paragraphs = []
         self.full_width_symbols = '，。、；：？！:《（【“”』'
-        self.symbols = self.full_width_symbols + '\'",.[](){}<>'
+        self.symbols = self.full_width_symbols + '\'",.[](){}<>/\\'
         # split the text into paragraphs
         for paragraph in map(lambda x: list(x), text.split('\n')):
             # create a new paragraph
