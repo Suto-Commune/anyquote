@@ -330,6 +330,8 @@ class Text:  # blog: layout
                     if i == 0 and word in "《（【〔“":
                         _len = _len / 2
                         offset_x = -_len
+                    elif i == len(text) - 1 and word in "》）】〕”、":
+                        _len = _len / 2
                     if len(text) > i + 1:
                         if word in "》）】，。、；：？！”" and text[i + 1] in "《（【，。、“":
                             _len = _len / 2
