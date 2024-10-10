@@ -5,9 +5,15 @@ a simple quote generator using python.
 # Usage
 
 ```python
-from anyquote import quote
+from PIL import Image
 
-print(quote(,)
+from anyquote import quote
+from anyquote import quote_twitter
+
+img = Image.new("RGB", (128, 128))
+quote(user_name='hsn', user_avatar=img, context='Hello World', _time=datetime.now(), user_id='@hsn8086').show()
+
+quote_twitter("https://x.com/realDonaldTrump/status/1347555316863553542").show()
 ```
 
 # Installation
