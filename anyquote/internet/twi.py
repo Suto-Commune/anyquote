@@ -82,14 +82,14 @@ def get_tweet_info_login(url: str):
     return user_name, user_id, user_avatar, context, medias, t
 
 
-def get_tweet_info(url: str, *, driver_path: str = ""):
+def get_tweet_info(url: str, *, driver: webdriver.Chrome = None):
     options = Options()
-    if not driver_path:
-        driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
     options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
     options.add_argument("--headless")
-    svc = webdriver.ChromeService(driver_path)
-    driver = webdriver.Chrome(options=options, service=svc)
+    if not driver:
+        driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+        svc = webdriver.ChromeService(driver_path)
+        driver = webdriver.Chrome(options=options, service=svc)
     driver.get(url)
 
     performance_log = driver.get_log("performance")

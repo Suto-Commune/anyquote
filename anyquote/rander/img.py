@@ -30,6 +30,7 @@ import qrcode
 from PIL import Image, ImageDraw
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
+from selenium import webdriver
 
 from .text import Font, TextBox, Text
 from ..internet.twi import get_tweet_info
@@ -151,7 +152,7 @@ def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, use
     return img_rt
 
 
-def quote_twitter(url: str, *, driver_path: str = ""):
-    user_name, user_id, user_avatar, context, medias, t = get_tweet_info(url, driver_path=driver_path)
+def quote_twitter(url: str, *, driver: webdriver.Chrome = None):
+    user_name, user_id, user_avatar, context, medias, t = get_tweet_info(url, driver=driver)
     return quote(user_name=user_name, user_avatar=user_avatar, context=context, _time=t, user_id=user_id, medias=medias,
                  source=url)
