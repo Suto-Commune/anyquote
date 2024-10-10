@@ -1,24 +1,21 @@
 [tool.poetry]
 name = "anyquote"
-version = "0.2.2"
+version = "0.2.3"
 description = ""
 authors = ["hsn <hsn1919810@gmail.com>"]
 readme = "README.md"
 packages = [
     { include = "anyquote" },
-
-
 ]
 [tool.poetry.dependencies]
 python = "^3.11"
 selenium = "^4.23.1"
-
 pillow = "^10.4.0"
 requests = "^2.32.3"
 fonttools = "^4.53.1"
 qrcode = "^7.4.2"
 twitter-api-client = "^0.10.22"
-chromedriver-py = "^127.0.6533.99"
+chromedriver-py = "127.0.6533.99"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
