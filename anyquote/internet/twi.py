@@ -35,8 +35,6 @@ from selenium.webdriver.chrome.options import Options
 from twitter.scraper import Scraper
 from webdriver_manager.chrome import ChromeDriverManager, ChromeType
 
-CHROME_DRIVER_PATH = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
-
 
 def get_tweet_info_login(url: str):
     s = Scraper(cookies=c)
@@ -84,13 +82,13 @@ def get_tweet_info_login(url: str):
     return user_name, user_id, user_avatar, context, medias, t
 
 
-def get_tweet_info(url: str):
-    global CHROME_DRIVER_PATH
+def get_tweet_info(url: str, *, driver_path: str = ""):
     options = Options()
-
+    if not driver_path:
+        driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
     options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
     options.add_argument("--headless")
-    svc = webdriver.ChromeService(CHROME_DRIVER_PATH)
+    svc = webdriver.ChromeService(driver_path)
     driver = webdriver.Chrome(options=options, service=svc)
     driver.get(url)
 

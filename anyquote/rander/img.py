@@ -151,7 +151,7 @@ def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, use
     return img_rt
 
 
-def quote_twitter(url: str):
-    user_name, user_id, user_avatar, context, medias, t = get_tweet_info(url)
+def quote_twitter(url: str, *, driver_path: str = ""):
+    user_name, user_id, user_avatar, context, medias, t = get_tweet_info(url, driver_path=driver_path)
     return quote(user_name=user_name, user_avatar=user_avatar, context=context, _time=t, user_id=user_id, medias=medias,
                  source=url)
