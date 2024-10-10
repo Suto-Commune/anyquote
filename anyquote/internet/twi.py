@@ -29,11 +29,13 @@ from io import BytesIO
 
 import requests
 from PIL import Image
-from chromedriver_py import binary_path
 from selenium import webdriver
 from selenium.common import WebDriverException
 from selenium.webdriver.chrome.options import Options
 from twitter.scraper import Scraper
+from webdriver_manager.chrome import ChromeDriverManager, ChromeType
+
+CHROME_DRIVER_PATH = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
 
 
 def get_tweet_info_login(url: str):
@@ -83,11 +85,12 @@ def get_tweet_info_login(url: str):
 
 
 def get_tweet_info(url: str):
+    global CHROME_DRIVER_PATH
     options = Options()
 
     options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
     options.add_argument("--headless")
-    svc = webdriver.ChromeService(binary_path)
+    svc = webdriver.ChromeService(CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(options=options, service=svc)
     driver.get(url)
 

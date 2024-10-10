@@ -15,7 +15,7 @@ requests = "^2.32.3"
 fonttools = "^4.53.1"
 qrcode = "^7.4.2"
 twitter-api-client = "^0.10.22"
-chromedriver-py = "127.0.6533.99"
+webdriver-manager = "^4.0.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
