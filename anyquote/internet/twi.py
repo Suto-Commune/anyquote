@@ -25,18 +25,13 @@
 """
 
 import asyncio
-import json
 from datetime import datetime
 from io import BytesIO
 
 import requests
 from PIL import Image
 from playwright.async_api import async_playwright, Response
-from selenium import webdriver
-from selenium.common import WebDriverException
-from selenium.webdriver.chrome.options import Options
 from twitter.scraper import Scraper
-from webdriver_manager.chrome import ChromeDriverManager, ChromeType
 
 
 def get_tweet_info_login(url: str):
@@ -145,6 +140,10 @@ async def get_tweet_info_playwright(url: str):
 
         page.on("response", handle_response)
         await page.goto(url)
+        for i in range(50):
+            if res:
+                break
+            await asyncio.sleep(0.1)
         await browser.close()
     if not res:
         raise Exception("No data found")
@@ -234,122 +233,8 @@ async def get_tweet_info_playwright(url: str):
     return user_name, user_id, user_avatar, context, medias, t
 
 
-def get_tweet_info(url: str, *, driver: webdriver.Chrome = None):
-    options = Options()
-    options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-    options.add_argument("--headless")
-    if not driver:
-        driver_path = ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
-        svc = webdriver.ChromeService(driver_path)
-        driver = webdriver.Chrome(options=options, service=svc)
-    driver.get(url)
-
-    performance_log = driver.get_log("performance")
-
-    for packet in performance_log:
-        message = json.loads(packet.get("message")).get("message")
-        packet_method = message.get("method")
-        if "Network" in packet_method:
-            request_id = message.get("params").get("requestId")
-            try:
-                resp = driver.execute_cdp_cmd(
-                    "Network.getResponseBody", {"requestId": request_id}
-                )
-                body = resp.get("body")
-                j = json.loads(body)
-                if "data" in j:
-                    break
-            except json.JSONDecodeError:
-                pass
-            except WebDriverException:
-                pass
-    else:
-        raise Exception("No data found")
-    driver.quit()
-    # /data/tweetResult/result/core/user_results/result/legacy/name
-    user_name = (
-        j.get("data")
-        .get("tweetResult")
-        .get("result")
-        .get("core")
-        .get("user_results")
-        .get("result")
-        .get("legacy")
-        .get("name")
-    )
-    # /data/tweetResult/result/legacy/entities/media
-    medias = (
-        j.get("data")
-        .get("tweetResult")
-        .get("result")
-        .get("legacy")
-        .get("entities")
-        .get("media")
-    )
-    # /data/tweetResult/result/note_tweet/note_tweet_results/result/text
-    note_tweet = (
-        j.get("data", {})
-        .get("tweetResult", {})
-        .get("result", {})
-        .get("note_tweet", {})
-        .get("note_tweet_results", {})
-        .get("result", {})
-        .get("text", {})
-    )
-
-    # /data/tweetResult/result/legacy/full_text
-    full_text: str = (
-        j.get("data").get("tweetResult").get("result").get("legacy").get("full_text")
-    )
-    if note_tweet:
-        context = note_tweet
-    else:
-        context = full_text[: full_text.rfind("https://t.co/")]
-    # /data/tweetResult/result/core/user_results/result/legacy/screen_name
-    user_id = (
-        j.get("data")
-        .get("tweetResult")
-        .get("result")
-        .get("core")
-        .get("user_results")
-        .get("result")
-        .get("legacy")
-        .get("screen_name")
-    )
-    # /data/tweetResult/result/core/user_results/result/legacy/profile_image_url_https
-    user_avatar_url: str = (
-        j.get("data")
-        .get("tweetResult")
-        .get("result")
-        .get("core")
-        .get("user_results")
-        .get("result")
-        .get("legacy")
-        .get("profile_image_url_https")
-    )
-    user_avatar_url = user_avatar_url.replace("_normal.jpg", ".jpg")
-    headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"
-    }
-    # req = request.Request("https://pbs.twimg.com/profile_images/1601123559812009984/2vI25CZP_normal.jpg",headers=headers)
-    # proxy_host = 'http://localhost:7890'
-    # if proxy_host:
-    #     req.set_proxy(proxy_host, 'http')
-    #
-    # response = request.urlopen(req)
-    # resp = requests.get(user_avatar_url, headers=headers,
-    #                     proxies={'http': 'http://localhost:7890', 'https': 'http://localhost:7890'})
-    resp = requests.get(user_avatar_url, headers=headers)
-    user_avatar_raw = resp.content
-    user_avatar = Image.open(BytesIO(user_avatar_raw))
-
-    # /data/tweetResult/result/legacy/created_at
-    time_ctime = (
-        j.get("data").get("tweetResult").get("result").get("legacy").get("created_at")
-    )
-    t = datetime.strptime(time_ctime, "%a %b %d %H:%M:%S %z %Y")
-
-    return user_name, user_id, user_avatar, context, medias, t
+def get_tweet_info(url: str):
+    return asyncio.run(get_tweet_info_playwright(url))
 
 
 async def test():

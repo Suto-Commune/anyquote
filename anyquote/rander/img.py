@@ -69,6 +69,9 @@ class Zoomer:
         return self.zoom(size)
 
 
+from ..font_manager import get_font
+
+
 def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, user_id: str = "",
           medias: list[Image] = None, source: str = ""):
     medias = medias or []
@@ -76,28 +79,32 @@ def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, use
     font_zoomer = Zoomer(zoomer(90))
     if True:  # The define of fonts. Fold it pls.
         import anyquote
-        assets_path = Path(anyquote.__file__).parent / "assets"
+
+        font_regular = get_font("SourceHanSansSC", "Regular")
+        font_bold = get_font("SourceHanSansSC", "Bold")
+        font_light = get_font("SourceHanSansSC", "Light")
+        font_variable = get_font("NotoEmoji-VariableFont")
         fonts_context = [
-            Font(Path(assets_path / 'SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf'),
+            Font(font_regular,
                  size=font_zoomer(1)),
-            Font(Path(assets_path / 'NotoEmoji-VariableFont_wght.ttf'),
+            Font(font_variable,
                  size=font_zoomer(1),
                  offset=(0, font_zoomer(8)))
         ]
         fonts_name = [
             Font(
-                Path(assets_path / 'SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Bold.otf'),
+                font_bold,
                 size=font_zoomer(1.2)
             ),
             Font(
-                Path(assets_path / 'NotoEmoji-VariableFont_wght.ttf'),
+                font_variable,
                 size=font_zoomer(1.2),
                 offset=(0, font_zoomer(8 * 1.2))
             )
         ]
         fonts_id = [
             Font(
-                Path(assets_path / 'SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Light.otf'),
+                font_light,
                 size=font_zoomer(0.64)
             ),
         ]
