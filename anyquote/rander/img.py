@@ -78,8 +78,6 @@ def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, use
     zoomer = Zoomer(0.5)
     font_zoomer = Zoomer(zoomer(90))
     if True:  # The define of fonts. Fold it pls.
-        import anyquote
-
         font_regular = get_font("SourceHanSansSC", "Regular")
         font_bold = get_font("SourceHanSansSC", "Bold")
         font_light = get_font("SourceHanSansSC", "Light")

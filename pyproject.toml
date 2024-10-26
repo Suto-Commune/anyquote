@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anyquote"
-version = "0.3.0"
+version = "0.3.10"
 description = ""
 authors = ["hsn <hsn1919810@gmail.com>"]
 readme = "README.md"
@@ -14,7 +14,6 @@ requests = "^2.32.3"
 fonttools = "^4.53.1"
 qrcode = "^7.4.2"
 twitter-api-client = "^0.10.22"
-webdriver-manager = "^4.0.2"
 playwright = "^1.47.0"
 rich = "^13.9.3"
 
