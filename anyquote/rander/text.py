@@ -23,6 +23,7 @@
 
 @Date       : 2024/8/2 下午7:26
 """
+import dataclasses
 import math
 from os import PathLike
 
@@ -95,6 +96,7 @@ class Line:
         if self.text == '':
             return
         text = Text(text=self.text, fonts=self.fonts, spacing=self.spacing)
+
         if self.align == 'left':
             text.draw(draw, (x, y), fill)
         elif self.align == 'center':
@@ -121,7 +123,7 @@ class Line:
                 else:
                     symbols = filter(lambda a: a in self.full_width_symbols, self.text)
                     symbol_count = len(list(symbols))
-                    indentation = (-diff) / symbol_count
+                    indentation = (-diff) / (symbol_count+0.0001)
                     texts = []
                     for word, font, _len, font_offset in text.texts:
                         if word in self.full_width_symbols:
@@ -148,6 +150,7 @@ class Line:
             return self.max_width, y
 
     def append(self, text: str):
+        # print(Text(text=self.text + text, fonts=self.fonts, spacing=self.spacing).get_length(), self.max_width)
         if Text(text=self.text + text, fonts=self.fonts, spacing=self.spacing).get_length() <= self.max_width:
             self.text += text
         else:
@@ -166,9 +169,63 @@ class Line:
         return self.text
 
 
+from typing import Literal, Iterable
+
+
+@dataclasses.dataclass
+class Word:
+    text: str
+    type: Literal['word', 'symbol', 'space', 'char']
+
+
+invalid_start_chars = [
+    (0x0021, 0x002F),
+    (0x003A, 0x0040),
+    (0x005B, 0x0060),
+    (0x007B, 0x007E),
+    (0x02b0, 0x02ff),
+    (0x0300, 0x036F),
+    (0xff00, 0xffef),
+    (0x2018, 0x201F),
+    (0x2000, 0x2026),
+    (0x3000, 0x303F),
+]
+
+
+def is_valid_start(text):
+    if not text:
+        return True
+    for start, end in invalid_start_chars:
+        if start <= ord(text) <= end:
+            return False
+    return True
+
+
+def spliter(text: Iterable[str]):
+    word = ''
+
+    for i, char in enumerate(text):
+        if is_alpha(char):
+            word += char
+        else:
+            if word:
+                yield Word(word, 'word')
+                word = ''
+            if char == ' ':
+                yield Word(char, 'space')
+            elif not is_valid_start(char):
+                yield Word(char, 'symbol')
+            else:
+                yield Word(char, 'char')
+    if word:
+        yield Word(word, 'word')
+
+
 class Paragraph:
-    def __init__(self, fonts: list[Font], spacing: int = 0, line_spacing: int = 0, max_width: int = math.inf,
-                 align='justify', symbol_push: bool = True, symbol_push_threshold: tuple[float, float] = (0.5, 1)):
+    def __init__(self, text: Iterable[str], fonts: list[Font], spacing: int = 0, line_spacing: int = 0,
+                 max_width: int = math.inf,
+                 align: Literal["justify", "left", "center", "right"] = 'justify',
+                 symbol_push: bool = True, symbol_push_threshold: tuple[float, float] = (0.5, 1)):
         self.lines = []
         self.max_width = max_width
         self.line_spacing = line_spacing
@@ -178,12 +235,34 @@ class Paragraph:
                                     symbol_push=symbol_push,
                                     symbol_push_threshold=symbol_push_threshold)
         self.align = align
+        self.add(text)
 
-    def add_text(self, text: str):
+    def add(self, text: Iterable[str]):
+        last_type = None
+        for word in spliter(text):
+            if last_type == 'word' and word.type == 'char' or last_type == 'char' and word.type == 'word':
+                self._add(Word(" ", 'space'))
+            self._add(word)
+            last_type = word.type
+
+    def _add(self, word: Word):
         try:
-            self.unfinished_line.append(text)
+            self.unfinished_line.append(word.text)
         except EOFError:
-            self.new_line(text)
+            if not word.type == 'space':
+                if word.type == "symbol":
+                    idx = 0
+                    for _i, c in enumerate(self.unfinished_line.text):
+                        i = len(self.unfinished_line.text) - _i - 1
+                        if not is_alpha(c):
+                            idx = i
+                            break
+                    nl= self.unfinished_line.text[idx:]
+                    self.unfinished_line.text = self.unfinished_line.text[:idx]
+                    self.new_line(nl)
+                else:
+                    self.new_line()
+                self._add(word)
 
     def check(self, text: str):
         return Text(text=self.unfinished_line.text + text, fonts=self.fonts,
@@ -225,9 +304,10 @@ class TextBox:
         # split the text into paragraphs
         for paragraph in map(lambda x: list(x), text.split('\n')):
             # create a new paragraph
-            p = Paragraph(line_spacing=line_spacing, spacing=spacing, fonts=fonts, max_width=max_width, align='justify',
+            p = Paragraph(text=paragraph, line_spacing=line_spacing, spacing=spacing, fonts=fonts, max_width=max_width,
+                          align='justify',
                           symbol_push=symbol_push, symbol_push_threshold=symbol_push_threshold)
-
+            """
             word = ''
 
             for i, _char in enumerate(paragraph):
@@ -286,7 +366,7 @@ class TextBox:
                             p.new_line(extra + _char)
                         else:
                             p.new_line(_char)
-
+                
                 # if i + 1 < len(paragraph):
                 #
                 #     if is_chinese(_char) and in_alphabet_range(paragraph[i + 1]):
@@ -294,6 +374,8 @@ class TextBox:
                 #             p.add_text(' ')
             if word:
                 p.add_text(word)
+            """
+
             self.paragraphs.append(p)
 
     @property

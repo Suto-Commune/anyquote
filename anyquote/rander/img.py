@@ -158,6 +158,7 @@ def quote(user_name: str, user_avatar: Image, context: str, _time: datetime, use
 
 async def quote_twitter_async(url: str):
     user_name, user_id, user_avatar, context, medias, t = await get_tweet_info_playwright(url)
+    print(context)
     return quote(user_name=user_name, user_avatar=user_avatar, context=context, _time=t, user_id=user_id, medias=medias,
                  source=url)
 

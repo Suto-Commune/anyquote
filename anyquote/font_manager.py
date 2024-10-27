@@ -33,20 +33,21 @@ from rich.progress import track
 
 
 def get_noto_emoji_var():
-    list_url = "https://fonts.google.com/download/list?family=Noto%20Emoji"
-    json_str = httpx.get(list_url).text
-    j = json.loads(json_str.split("\n", 1)[1])
-    for i in j.get("manifest").get("fileRefs"):
-        if i.get("filename") == "NotoEmoji-VariableFont_wght.ttf":
-            url = i.get("url")
-            break
-    else:
-        raise ValueError("Can't find NotoEmoji-VariableFont_wght.ttf")
-    # Download
     cache = Path("./.cache")
-    if not cache.exists():
-        cache.mkdir()
     if not (cache / "NotoEmoji-VariableFont_wght.ttf").exists():
+        list_url = "https://fonts.google.com/download/list?family=Noto%20Emoji"
+        json_str = httpx.get(list_url).text
+        j = json.loads(json_str.split("\n", 1)[1])
+        for i in j.get("manifest").get("fileRefs"):
+            if i.get("filename") == "NotoEmoji-VariableFont_wght.ttf":
+                url = i.get("url")
+                break
+        else:
+            raise ValueError("Can't find NotoEmoji-VariableFont_wght.ttf")
+        # Download
+
+        if not cache.exists():
+            cache.mkdir()
         with httpx.stream("GET", url, follow_redirects=True) as resp:
             with open(cache / "NotoEmoji-VariableFont_wght.ttf", "wb") as f:
                 for chunk in track(resp.iter_bytes(1024 * 128), description="Downloading...",

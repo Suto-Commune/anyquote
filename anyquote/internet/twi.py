@@ -185,7 +185,8 @@ async def get_tweet_info_playwright(url: str):
     if note_tweet:
         context = note_tweet
     else:
-        context = full_text[: full_text.rfind("https://t.co/")]
+        idx = full_text.rfind("https://t.co/")
+        context = full_text[: idx if idx != -1 else None]
     # /data/tweetResult/result/core/user_results/result/legacy/screen_name
     user_id = (
         j.get("data")
